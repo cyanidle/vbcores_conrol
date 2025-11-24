@@ -1,0 +1,6 @@
+[submodule "libcxxcanard"]
+	path = deps/libcxxcanard
+	url = https://github.com/VBCores/libcxxcanard.git
+[submodule "deps/tapki"]
+	path = deps/tapki
+	url = git@github.com:cyanidle/tapki.git
