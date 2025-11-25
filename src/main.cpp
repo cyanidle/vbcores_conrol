@@ -102,6 +102,8 @@ int main(int argc, char** argv) try
 
     ITeleop* tele = make_teleop(imotors);
 
+    cyphal_interface->start_threads();
+
     asio_loop(tele, [&]{
         cyphal_interface->loop();
     });

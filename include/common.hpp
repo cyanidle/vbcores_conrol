@@ -1,6 +1,7 @@
 ﻿#pragma once
 #include <stdint.h>
 #include <functional>
+#include <string_view>
 
 struct Args
 {
@@ -18,9 +19,18 @@ struct IMotor
     virtual void set_voltage(float value) = 0;
 };
 
+struct DriveTarget {
+    float x;
+    float th;
+
+    bool operator<=>(const DriveTarget&) const = default;
+};
+
 struct ITeleop
 {
+    virtual DriveTarget get_target() = 0;
     virtual void handle_press(int key) = 0;
+    virtual std::string extra_msg() = 0;
 };
 
 ITeleop* make_teleop(IMotor** motors);
