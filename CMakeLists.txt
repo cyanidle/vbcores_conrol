@@ -13,13 +13,8 @@ endif()
 include(deps/get_cpm.cmake)
 
 CPMAddPackage("gh:fmtlib/fmt#12.1.0")
-
-set(BOOST_INCLUDE_LIBRARIES asio)
-CPMAddPackage(NAME Boost
-    VERSION 1.89.0
-    URL https://github.com/boostorg/boost/releases/download/boost-1.89.0/boost-1.89.0-cmake.7z
-    URL_HASH SHA256=252149f583054515b10688855b24ca1c16072b5118e603b8fe017894d319c262
-)
+find_package(Curses REQUIRED)
+find_package(Boost REQUIRED CONFIG)
 
 add_subdirectory(deps/libcxxcanard)
 target_include_directories(libcxxcanard INTERFACE
@@ -27,7 +22,6 @@ target_include_directories(libcxxcanard INTERFACE
     deps/libcxxcanard/libs
 )
 
-find_package(Curses REQUIRED)
 
 add_executable(vb_control
     src/main.cpp
@@ -43,6 +37,6 @@ target_include_directories(vb_control PRIVATE
 target_link_libraries(vb_control PRIVATE
     libcxxcanard
     fmt::fmt
-    Boost::asio
+    Boost::boost
     ncurses
 )
