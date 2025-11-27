@@ -7,6 +7,9 @@
 #include <uavcan/primitive/scalar/Real32_1_0.h>
 #include <uavcan/primitive/scalar/Natural32_1_0.h>
 #include <fmt/core.h>
+#include <uavcan/node/Heartbeat_1_0.h>
+#include <uavcan/node/Health_1_0.h>
+#include <uavcan/node/Mode_1_0.h>
 #include "common.hpp"
 #define TAPKI_IMPLEMENTATION
 #include "tapki.h"
@@ -38,6 +41,16 @@ Args parse_args(int argc, char** argv)
 
 TYPE_ALIAS(Natural32, uavcan_primitive_scalar_Natural32_1_0)
 TYPE_ALIAS(Real32, uavcan_primitive_scalar_Real32_1_0)
+TYPE_ALIAS(HBeat, uavcan_node_Heartbeat_1_0)
+
+void heartbeat(CyphalInterface& iface) {
+    static CanardTransferID hbeat_transfer_id = 0;
+    HBeat::Type heartbeat_msg = {};
+    heartbeat_msg.uptime = std::chrono::system_clock::now().time_since_epoch().count();
+    heartbeat_msg.health = {uavcan_node_Health_1_0_NOMINAL};
+    heartbeat_msg.mode = {uavcan_node_Mode_1_0_OPERATIONAL};
+    iface.send_msg<HBeat>(&heartbeat_msg, uavcan_node_Heartbeat_1_0_FIXED_PORT_ID_, &hbeat_transfer_id);
+}
 
 static constexpr CanardPortID ENCODER_PORT = 7100;
 static constexpr CanardPortID VOLTAGE_PORT = 5800;
@@ -104,9 +117,14 @@ int main(int argc, char** argv) try
 
     cyphal_interface->start_threads();
 
-    asio_loop(tele, [&]{
+    AsioLoopParams params;
+    params.spin = [&]{
         cyphal_interface->loop();
-    });
+    };
+    params.heartbeat = [&]{
+        heartbeat(*cyphal_interface);
+    };
+    asio_loop(tele, params);
 } catch(std::exception& e) {
     fmt::println(stderr, "ERROR: {}", e.what());
 }

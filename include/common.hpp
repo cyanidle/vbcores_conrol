@@ -34,4 +34,11 @@ struct ITeleop
 };
 
 ITeleop* make_teleop(IMotor** motors);
-void asio_loop(ITeleop* tele, std::function<void()> spin);
+
+struct AsioLoopParams
+{
+    std::function<void()> spin;
+    std::function<void()> heartbeat;
+};
+
+void asio_loop(ITeleop* tele, AsioLoopParams const& params);

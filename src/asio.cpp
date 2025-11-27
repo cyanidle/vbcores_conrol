@@ -9,6 +9,13 @@
 using namespace std::chrono_literals;
 using namespace boost;
 
+[[maybe_unused]] static asio::awaitable<void> shutdown_later(asio::io_context& io, auto timeout)
+{
+    asio::high_resolution_timer timer(io, timeout);
+    co_await timer.async_wait(asio::use_awaitable);
+    io.stop();
+}
+
 static asio::awaitable<void> ctrlc(asio::io_context& io)
 {
     asio::signal_set signals(io, SIGINT);
@@ -16,13 +23,13 @@ static asio::awaitable<void> ctrlc(asio::io_context& io)
     io.stop();
 }
 
-static asio::awaitable<void> spin(asio::io_context& io, std::function<void()> spin)
+static asio::awaitable<void> call_each(asio::io_context& io, std::function<void()> func, auto timeout)
 {
     asio::high_resolution_timer timer(io);
     while(true) {
-        timer.expires_after(1ms);
+        timer.expires_after(timeout);
         co_await timer.async_wait(asio::use_awaitable);
-        spin();
+        func();
     }
 }
 
@@ -71,11 +78,13 @@ static void curses_loop(asio::io_context& io, ITeleop* tele)
     }
 }
 
-void asio_loop(ITeleop* tele, std::function<void()> _spin)
+void asio_loop(ITeleop* tele, AsioLoopParams const& params)
 {
     asio::io_context io;
-    asio::co_spawn(io, spin(io, std::move(_spin)), asio::detached);
+    asio::co_spawn(io, call_each(io, params.spin, 1ms), asio::detached);
+    asio::co_spawn(io, call_each(io, params.heartbeat, 3s), asio::detached);
     asio::co_spawn(io, ctrlc(io), asio::detached);
+    //asio::co_spawn(io, shutdown_later(io, 2s), asio::detached);
     std::jthread inputs(curses_loop, std::ref(io), tele);
     io.run();
 }
