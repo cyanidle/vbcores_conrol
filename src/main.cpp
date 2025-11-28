@@ -101,4 +101,5 @@ int main(int argc, char** argv) try
     asio_loop(tele, params);
 } catch(std::exception& e) {
     fmt::println(stderr, "ERROR: {}", e.what());
+    return 1;
 }
