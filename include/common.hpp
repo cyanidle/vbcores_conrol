@@ -17,7 +17,7 @@ Args parse_args(int argc, char** argv);
 struct IMotor
 {
     virtual int32_t get_encoder() = 0;
-    virtual void set_voltage(float value) = 0;
+    virtual void set_target_speed(float value) = 0;
 };
 
 struct DriveTarget {

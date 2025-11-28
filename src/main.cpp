@@ -45,16 +45,15 @@ struct Motor final :
     std::atomic<int32_t> encoder_value = 0;
     int64_t base;
     int index;
-
+    CanardTransferID _transfer_id = 0;
 
     int32_t get_encoder() override {
         return encoder_value;
     }
 
-    void set_voltage(float value) override {
+    void set_target_speed(float value) override {
         Real32::Type msg{};
         msg.value = value;
-        static CanardTransferID _transfer_id;
         interface->send_msg<Real32>(&msg, VOLTAGE_PORT + base + index, &_transfer_id);
     }
 private:

@@ -29,7 +29,7 @@ struct Teleop final : ITeleop
             if (res < std::numeric_limits<float>::epsilon()) {
                 res = 0;
             }
-            motors[i]->set_voltage(res);
+            motors[i]->set_target_speed(res);
         }
     }
 
