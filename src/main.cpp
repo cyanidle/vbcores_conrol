@@ -11,33 +11,7 @@
 #include <uavcan/node/Health_1_0.h>
 #include <uavcan/node/Mode_1_0.h>
 #include "common.hpp"
-#define TAPKI_IMPLEMENTATION
-#include "tapki.h"
 
-Args parse_args(int argc, char** argv)
-{
-    Arena* arena = ArenaCreate(2048);
-    Args args;
-
-    Str sock{};
-
-    CLI cli[] = {
-        {.name="--node,-n", .data=&args.node_id, .help=F("Override default node id [default=%li]", args.node_id).d, .int64=true},
-        {.name="--socket,-s", .data=&sock, .help=F("Can socket to use [default=%s]", args.socket).d},
-        {.name="--motors,-m", .data=&args.motor_node_base, .help=F("Motor node_id start (4 motors) [default=%li]", args.motor_node_base).d},
-        {},
-    };
-
-    if (ParseCLI(cli, argc, argv) != 0) {
-        std::exit(1);
-    }
-
-    if (sock.size) {
-        args.socket = sock.d;
-    }
-
-    return args;
-}
 
 TYPE_ALIAS(Natural32, uavcan_primitive_scalar_Natural32_1_0)
 TYPE_ALIAS(Real32, uavcan_primitive_scalar_Real32_1_0)

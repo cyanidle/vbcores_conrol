@@ -2,11 +2,12 @@
 #include <stdint.h>
 #include <functional>
 #include <string_view>
+#include <string>
 
 struct Args
 {
     int64_t node_id = 77;
-    const char* socket = "can0";
+    std::string socket = "can0";
     int64_t motor_node_base = 0;
 };
 
