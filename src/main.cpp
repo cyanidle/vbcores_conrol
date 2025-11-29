@@ -2,6 +2,7 @@
 #include <cyphal/allocators/o1/o1_allocator.h>
 #include <cyphal/subscriptions/subscription.h>
 #include <cyphal/providers/LinuxCAN.h>
+#include <cyphal/node/node_info_handler.h>
 #include <uavcan/node/Mode_1_0.h>
 #include <uavcan/si/unit/angle/Scalar_1_0.h>
 #include <uavcan/primitive/scalar/Real32_1_0.h>
@@ -16,6 +17,13 @@
 TYPE_ALIAS(Natural32, uavcan_primitive_scalar_Natural32_1_0)
 TYPE_ALIAS(Real32, uavcan_primitive_scalar_Real32_1_0)
 TYPE_ALIAS(HBeat, uavcan_node_Heartbeat_1_0)
+
+void cyphal_node_unique_id(uint32_t& a, uint32_t& b, uint32_t& c)
+{
+    a = 1;
+    b = 2;
+    c = 3;
+}
 
 static void heartbeat(CyphalInterface& iface) {
     static CanardTransferID hbeat_transfer_id = 0;
@@ -90,6 +98,13 @@ int main(int argc, char** argv) try
     ITeleop* tele = make_teleop(imotors);
 
     cyphal_interface->start_threads();
+
+    NodeInfoReader reader(cyphal_interface,
+        "org.bfu.vbcores",
+        uavcan_node_Version_1_0{1, 0},
+        uavcan_node_Version_1_0{1, 0},
+        uavcan_node_Version_1_0{1, 0},
+        0);
 
     AsioLoopParams params;
     params.spin = [&]{
