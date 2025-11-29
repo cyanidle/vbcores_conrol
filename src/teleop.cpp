@@ -26,7 +26,7 @@ struct Teleop final : ITeleop
             float move = target.x * 0.7 * sign;
             float rot = target.x * 0.3 * sign;
             float res = move + rot;
-            if (res < std::numeric_limits<float>::epsilon()) {
+            if (std::abs(res) < std::numeric_limits<float>::epsilon()) {
                 res = 0;
             }
             motors[i]->set_target_speed(res);
@@ -34,7 +34,12 @@ struct Teleop final : ITeleop
     }
 
     void handle_press(int ch) override {
-        msg = fmt::format("Last: '{}'", char(ch));
+        msg = fmt::format("Last: '{}'.\nEncoders: [{:^5}|{:^5}|{:^5}|{:^5}]", char(ch),
+            motors[0]->get_encoder(),
+            motors[1]->get_encoder(),
+            motors[2]->get_encoder(),
+            motors[3]->get_encoder()
+        );
         switch (ch) {
         case 'w': case 'W': {
             target.x += 0.1;

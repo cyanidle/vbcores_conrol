@@ -45,7 +45,7 @@ static void curses_print(DriveTarget target, std::string_view extra)
     clear();
     auto msg = fmt::format(
         "Teleop: use 'WASD'/'Arrows' to control robot.\n"
-        "'Shift' for slide mode. 'Space' to stop. 'Ctrl+C' to exit\n"
+        "'Space' to stop. 'Ctrl+C' to exit\n"
         "X:{:-10} Rot:{:-10}\n\n{}",
         target.x, target.th, extra
     );
@@ -82,9 +82,9 @@ void asio_loop(ITeleop* tele, AsioLoopParams const& params)
 {
     asio::io_context io;
     asio::co_spawn(io, call_each(io, params.spin, 1ms), asio::detached);
-    asio::co_spawn(io, call_each(io, params.heartbeat, 3s), asio::detached);
+    asio::co_spawn(io, call_each(io, params.heartbeat, 1s), asio::detached);
     asio::co_spawn(io, ctrlc(io), asio::detached);
     //asio::co_spawn(io, shutdown_later(io, 2s), asio::detached);
     std::jthread inputs(curses_loop, std::ref(io), tele);
     io.run();
-}
+} 

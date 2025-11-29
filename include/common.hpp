@@ -7,6 +7,7 @@
 struct Args
 {
     int64_t node_id = 77;
+    float max_voltage = 20;
     std::string socket = "can0";
     int64_t motor_node_base = 0;
 };

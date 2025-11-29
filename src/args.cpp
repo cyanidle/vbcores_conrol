@@ -13,6 +13,11 @@ Args parse_args(int argc, char** argv)
         .default_value(args.node_id)
         .scan<'i', int64_t>();
     parser
+        .add_argument("--voltage", "-v")
+        .help("Max voltage")
+        .default_value(args.max_voltage)
+        .scan<'g', float>();
+    parser
         .add_argument("--socket", "-s")
         .help("Can socket to use")
         .default_value(args.socket);
@@ -27,6 +32,7 @@ Args parse_args(int argc, char** argv)
     args.motor_node_base = parser.get<int64_t>("motors");
     args.socket = parser.get("socket");
     args.node_id = parser.get<int64_t>("node");
+    args.max_voltage = parser.get<float>("voltage");
 
     return args;
 }
