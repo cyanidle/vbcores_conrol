@@ -105,24 +105,22 @@ int main(int argc, char** argv) try
 
     ITeleop* tele = make_teleop(imotors);
 
-    cyphal_interface->start_threads();
-
     uint64_t vcs_id = std::stoull(std::string(VERSION_HASH).substr(0, 16), nullptr, 16);
 
     NodeInfoReader reader(cyphal_interface,
-        "org.bfu.vbcores",
+        "org.bfu.vb_control",
         uavcan_node_Version_1_0{1, 0},
         uavcan_node_Version_1_0{1, 0},
         uavcan_node_Version_1_0{1, 0},
         vcs_id);
 
     AsioLoopParams params;
-    params.spin = [&]{
-        cyphal_interface->loop();
-    };
     params.heartbeat = [&]{
         heartbeat(*cyphal_interface);
     };
+
+    cyphal_interface->start_threads();
+
     asio_loop(tele, params);
 } catch(std::exception& e) {
     fmt::println(stderr, "ERROR: {}", e.what());

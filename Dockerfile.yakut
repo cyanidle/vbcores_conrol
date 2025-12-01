@@ -1,0 +1,12 @@
+FROM ubuntu:24.04
+RUN apt update && apt install python3 python3-pip git -y
+RUN pip install yakut==0.13.0 -U --break-system-packages
+RUN git clone https://github.com/OpenCyphal/public_regulated_data_types.git
+ENV \
+    YAKUT_COMPILE_OUTPUT=~/.yakut \
+    YAKUT_PATH=~/.yakut
+RUN y compile public_regulated_data_types/reg public_regulated_data_types/uavcan
+ENV \
+    UAVCAN__CAN__IFACE="socketcan:vcan0" \
+    UAVCAN__NODE__ID=111
+ENTRYPOINT [ "yakut" ]

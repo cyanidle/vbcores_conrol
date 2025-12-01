@@ -39,7 +39,6 @@ ITeleop* make_teleop(IMotor** motors);
 
 struct AsioLoopParams
 {
-    std::function<void()> spin;
     std::function<void()> heartbeat;
 };
 

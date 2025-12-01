@@ -81,7 +81,6 @@ static void curses_loop(asio::io_context& io, ITeleop* tele)
 void asio_loop(ITeleop* tele, AsioLoopParams const& params)
 {
     asio::io_context io;
-    asio::co_spawn(io, call_each(io, params.spin, 1ms), asio::detached);
     asio::co_spawn(io, call_each(io, params.heartbeat, 1s), asio::detached);
     asio::co_spawn(io, ctrlc(io), asio::detached);
     //asio::co_spawn(io, shutdown_later(io, 2s), asio::detached);
