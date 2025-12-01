@@ -48,19 +48,17 @@ struct Motor final :
     private AbstractSubscription<Natural32>,
     public IMotor
 {
-    Motor(std::shared_ptr<CyphalInterface> iface, int64_t base, int index, float max_voltage) :
-        AbstractSubscription<Natural32>(iface, CanardPortID(ENCODER_PORT + base + index)),
-        base(base),
+    Motor(std::shared_ptr<CyphalInterface> iface, const Args* args, int index) :
+        AbstractSubscription<Natural32>(iface, CanardPortID(ENCODER_PORT + args->motor_node_base + index)),
         index(index),
-        max_voltage(max_voltage)
+        args(args)
     {}
 
     Motor(Motor&&) = delete;
 
     std::atomic<int32_t> encoder_value = 0;
-    int64_t base;
     int index;
-    float max_voltage;
+    const Args* args;
     CanardTransferID _transfer_id = 0;
 
     int32_t get_encoder() override {
@@ -69,8 +67,8 @@ struct Motor final :
 
     void set_target_speed(float value) override {
         Real32::Type msg{};
-        msg.value = value * max_voltage;
-        interface->send_msg<Real32>(&msg, VOLTAGE_PORT + base + index, &_transfer_id);
+        msg.value = value * args->max_voltage;
+        interface->send_msg<Real32>(&msg, VOLTAGE_PORT + args->motor_node_base + index, &_transfer_id);
     }
 private:
     void handler(const Natural32::Type& msg, CanardRxTransfer* _) override {
@@ -82,7 +80,7 @@ int main(int argc, char** argv) try
 {
     Args args = parse_args(argc, argv);
 
-    auto cyphal_interface = CyphalInterface::create_heap<LinuxCAN, O1Allocator>(
+    std::shared_ptr<CyphalInterface> cyphal = CyphalInterface::create_heap<LinuxCAN, O1Allocator>(
         args.node_id,
         args.socket,    // SocketCAN
         200,            // длина очереди
@@ -90,10 +88,10 @@ int main(int argc, char** argv) try
     );
 
     Motor motors[4] = {
-        {cyphal_interface, args.motor_node_base, 0, args.max_voltage},
-        {cyphal_interface, args.motor_node_base, 1, args.max_voltage},
-        {cyphal_interface, args.motor_node_base, 2, args.max_voltage},
-        {cyphal_interface, args.motor_node_base, 3, args.max_voltage},
+        {cyphal, &args, 0},
+        {cyphal, &args, 1},
+        {cyphal, &args, 2},
+        {cyphal, &args, 3},
     };
 
     IMotor* imotors[] = {
@@ -107,7 +105,7 @@ int main(int argc, char** argv) try
 
     uint64_t vcs_id = std::stoull(std::string(VERSION_HASH).substr(0, 16), nullptr, 16);
 
-    NodeInfoReader reader(cyphal_interface,
+    NodeInfoReader reader(cyphal,
         "org.bfu.vb_control",
         uavcan_node_Version_1_0{1, 0},
         uavcan_node_Version_1_0{1, 0},
@@ -116,10 +114,10 @@ int main(int argc, char** argv) try
 
     AsioLoopParams params;
     params.heartbeat = [&]{
-        heartbeat(*cyphal_interface);
+        heartbeat(*cyphal);
     };
 
-    cyphal_interface->start_threads();
+    cyphal->start_threads();
 
     asio_loop(tele, params);
 } catch(std::exception& e) {
