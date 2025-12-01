@@ -12,6 +12,7 @@
 #include <uavcan/node/Health_1_0.h>
 #include <uavcan/node/Mode_1_0.h>
 #include "common.hpp"
+#include "config.h"
 
 
 TYPE_ALIAS(Natural32, uavcan_primitive_scalar_Natural32_1_0)
@@ -106,12 +107,14 @@ int main(int argc, char** argv) try
 
     cyphal_interface->start_threads();
 
-    // NodeInfoReader reader(cyphal_interface,
-    //     "org.bfu.vbcores",
-    //     uavcan_node_Version_1_0{1, 0},
-    //     uavcan_node_Version_1_0{1, 0},
-    //     uavcan_node_Version_1_0{1, 0},
-    //     0);
+    uint64_t vcs_id = std::stoull(std::string(VERSION_HASH).substr(0, 16), nullptr, 16);
+
+    NodeInfoReader reader(cyphal_interface,
+        "org.bfu.vbcores",
+        uavcan_node_Version_1_0{1, 0},
+        uavcan_node_Version_1_0{1, 0},
+        uavcan_node_Version_1_0{1, 0},
+        vcs_id);
 
     AsioLoopParams params;
     params.spin = [&]{

@@ -13,6 +13,18 @@ endif()
 
 include(deps/get_cpm.cmake)
 
+set(VERSION_HASH 0)
+execute_process(COMMAND git rev-parse HEAD
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    OUTPUT_VARIABLE VERSION_HASH
+    RESULT_VARIABLE git_res
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+    ECHO_ERROR_VARIABLE
+)
+
+configure_file(include/config.h.in ${CMAKE_BINARY_DIR}/config.h)
+include_directories(${CMAKE_BINARY_DIR})
+
 CPMAddPackage("gh:fmtlib/fmt#12.1.0")
 CPMAddPackage("gh:p-ranav/argparse@3.1")
 find_package(Curses REQUIRED)
