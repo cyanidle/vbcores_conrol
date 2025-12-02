@@ -1,6 +1,11 @@
 cmake_minimum_required(VERSION 3.16)
 
+if (DEFINED TURTLEBRO2_SYSROOT)
+    include(./toolchain/turtlebro2.cmake)
+endif()
+
 project(vbcores_control C CXX)
+
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_CXX_STANDARD 20)
