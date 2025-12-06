@@ -1,8 +1,10 @@
-﻿#include <cyphal/cyphal.h>
+﻿#include <cstdint>
+#include <cyphal/cyphal.h>
 #include <cyphal/allocators/o1/o1_allocator.h>
 #include <cyphal/subscriptions/subscription.h>
 #include <cyphal/providers/LinuxCAN.h>
 #include <cyphal/node/node_info_handler.h>
+#include <memory>
 #include <uavcan/node/Mode_1_0.h>
 #include <uavcan/si/unit/angle/Scalar_1_0.h>
 #include <uavcan/primitive/scalar/Real32_1_0.h>
@@ -56,13 +58,15 @@ struct Motor final :
 
     Motor(Motor&&) = delete;
 
-    std::atomic<int32_t> encoder_value = 0;
     int index;
+    std::function<void(int32_t)> encoder_cb;
     const Args* args;
+    Io* io = nullptr;
     CanardTransferID _transfer_id = 0;
+    int32_t current_enc = 0;
 
-    int32_t get_encoder() override {
-        return encoder_value;
+    void set_encoder_callback(std::function<void(int32_t)> cb) override {
+        encoder_cb = std::move(cb);
     }
 
     void set_target_speed(float value) override {
@@ -72,10 +76,12 @@ struct Motor final :
     }
 private:
     void handler(const Natural32::Type& msg, CanardRxTransfer* _) override {
-        encoder_value = msg.value;
+        io->dispatch([encoder_cb = encoder_cb, value = msg.value]{
+            encoder_cb(value);
+        });
     }
 };
-
+ 
 int main(int argc, char** argv) try
 {
     Args args = parse_args(argc, argv);
@@ -101,7 +107,12 @@ int main(int argc, char** argv) try
         motors + 3,
     };
 
-    ITeleop* tele = make_teleop(imotors);
+    std::unique_ptr<Io> io {make_asio()};
+    std::unique_ptr<ITeleop> tele {make_teleop(io.get(), imotors)};
+
+    for (auto& m: motors) {
+        m.io = io.get();
+    }
 
     uint64_t vcs_id = std::stoull(std::string(VERSION_HASH).substr(0, 16), nullptr, 16);
 
@@ -112,14 +123,12 @@ int main(int argc, char** argv) try
         uavcan_node_Version_1_0{1, 0},
         vcs_id);
 
-    AsioLoopParams params;
-    params.heartbeat = [&]{
+    io->set_teleop(tele.get());
+    io->spawn(1000, [&]{
         heartbeat(*cyphal);
-    };
-
+    });
     cyphal->start_threads();
-
-    asio_loop(tele, params);
+    io->loop();
 } catch(std::exception& e) {
     fmt::println(stderr, "ERROR: {}", e.what());
     return 1;

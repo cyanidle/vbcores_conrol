@@ -14,11 +14,22 @@ struct Args
 
 Args parse_args(int argc, char** argv);
 
+struct DriveTarget;
+struct ITeleop;
+
+struct Io
+{
+    virtual void spawn(unsigned millis, std::function<void()> func) = 0;
+    virtual void dispatch(std::function<void()> func) = 0;
+    virtual void set_teleop(ITeleop* tele) = 0;
+    virtual void print(DriveTarget const& target, std::string_view msg) = 0;
+    virtual void loop() = 0;
+};
 
 struct IMotor
 {
-    virtual int32_t get_encoder() = 0;
     virtual void set_target_speed(float value) = 0;
+    virtual void set_encoder_callback(std::function<void(int32_t)> cb) = 0;
 };
 
 struct DriveTarget {
@@ -30,16 +41,8 @@ struct DriveTarget {
 
 struct ITeleop
 {
-    virtual DriveTarget get_target() = 0;
     virtual void handle_press(int key) = 0;
-    virtual std::string extra_msg() = 0;
 };
 
-ITeleop* make_teleop(IMotor** motors);
-
-struct AsioLoopParams
-{
-    std::function<void()> heartbeat;
-};
-
-void asio_loop(ITeleop* tele, AsioLoopParams const& params);
+Io* make_asio();
+ITeleop* make_teleop(Io*, IMotor** motors);

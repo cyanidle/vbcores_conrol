@@ -1,7 +1,9 @@
 ﻿#include "common.hpp"
 #include <boost/asio.hpp>
+#include <boost/asio/dispatch.hpp>
 #include <coroutine>
 #include <chrono>
+#include <cstdlib>
 #include <thread>
 #include <fmt/core.h>
 #include <ncurses.h>
@@ -40,50 +42,71 @@ static void cleanup_curses() {
     endwin();
 }
 
-static void curses_print(DriveTarget target, std::string_view extra)
-{
-    clear();
-    auto msg = fmt::format(
-        "Teleop: use 'WASD'/'Arrows' to control robot.\n"
-        "'Space' to stop. 'Ctrl+C' to exit\n"
-        "X:{:-10} Rot:{:-10}\n\n{}",
-        target.x, target.th, extra
-    );
-    printw("%s", msg.c_str());
-}
-
-static void curses_loop(asio::io_context& io, ITeleop* tele)
-{
-    initscr();
-    noecho();
-    cbreak();
-    keypad(stdscr, TRUE);
-    timeout(0);
-    curs_set(0);
-    std::atexit(cleanup_curses);
-    std::shared_ptr<std::atomic<bool>> print{new std::atomic<bool>{true}};
-    while (!io.stopped()) {
-        refresh();
-        int ch = getch();
-        if (print->exchange(false)) {
-            curses_print(tele->get_target(), tele->extra_msg());
-        }
-        if (ch != ERR) {
-            asio::post([=]{
-                tele->handle_press(ch);
-                print->store(true);
-            });
-        }
-        std::this_thread::sleep_for(5ms);
-    }
-}
-
-void asio_loop(ITeleop* tele, AsioLoopParams const& params)
+struct Asio final : Io
 {
     asio::io_context io;
-    asio::co_spawn(io, call_each(io, params.heartbeat, 1s), asio::detached);
-    asio::co_spawn(io, ctrlc(io), asio::detached);
-    //asio::co_spawn(io, shutdown_later(io, 2s), asio::detached);
-    std::jthread inputs(curses_loop, std::ref(io), tele);
-    io.run();
-} 
+    std::jthread inputs;
+    ITeleop* tele = nullptr;
+
+    Asio() :
+        inputs(&Asio::curses_loop, this)
+    {
+        asio::co_spawn(io, ctrlc(io), asio::detached);
+    }
+
+    void spawn(unsigned millis, std::function<void()> func) override {
+        asio::co_spawn(io, call_each(io, func, 1s * millis), asio::detached);
+    }
+
+    void dispatch(std::function<void()> func) override {
+        asio::dispatch(io, std::move(func));
+    }
+
+    void set_teleop(ITeleop* tele) override {
+        this->tele = tele;
+    }
+
+    void loop() override {
+        io.run();
+    }
+
+    void print(DriveTarget const& target, std::string_view extra) override {
+        clear();
+        auto msg = fmt::format(
+            "Teleop: use 'WASD' + 'QEZC' to control robot.\n"
+            "'Space' to stop. 'Ctrl+C' to exit\n"
+            "X:{:-10} Rot:{:-10}\n\n{}",
+            target.x, target.th, extra
+        );
+        printw("%s", msg.c_str());
+    }
+
+    void curses_loop()
+    {
+        initscr();
+        noecho();
+        cbreak();
+        keypad(stdscr, TRUE);
+        timeout(0);
+        curs_set(0);
+        std::atexit(cleanup_curses);
+        print({}, {});
+        while (!io.stopped()) {
+            refresh();
+            int ch = getch();
+            if (ch != ERR) {
+                if (tele) {
+                    asio::post([tele = tele, ch]{
+                        tele->handle_press(ch);
+                    });
+                }
+            }
+            std::this_thread::sleep_for(5ms);
+        }
+    }
+};
+
+Io* make_asio()
+{
+    return new Asio;
+}
